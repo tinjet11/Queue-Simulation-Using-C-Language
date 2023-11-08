@@ -20,6 +20,7 @@ Turnaround Time = Completion Time – Arrival Time */
 #include <stdio.h>
 
 // Structure to represent a process
+
 struct Process
 {
     int id;             // Process ID
@@ -27,6 +28,13 @@ struct Process
     int burstTime;      // Burst time
     int completionTime; // Completion Time
 };
+
+struct Node
+{
+    struct Process data;
+    struct Node *next;
+};
+
 void roundRobin(struct Process processes[], int n, int quantum)
 {
     int remainingTime[n]; // Remaining burst time for each process
@@ -51,8 +59,8 @@ void roundRobin(struct Process processes[], int n, int quantum)
                 done = 0; // Not all processes are done
 
                 
-                if(currentTime < processes[i].arrivalTime){
-                    continue;
+                while(currentTime < processes[i].arrivalTime){
+                    currentTime++;
                 }
 
                 if (remainingTime[i] > quantum)
@@ -81,6 +89,23 @@ void roundRobin(struct Process processes[], int n, int quantum)
     }
 }
 
+// Function to sort processes by arrival time
+void sortArrivalTime(struct Process processes[], int n)
+{
+    for (int i = 0; i < n - 1; i++)
+    {
+        for (int j = 0; j < n - i - 1; j++)
+        {
+            if (processes[j].arrivalTime > processes[j + 1].arrivalTime)
+            {
+                struct Process temp = processes[j];
+                processes[j] = processes[j + 1];
+                processes[j + 1] = temp;
+            }
+        }
+    }
+}
+
 int main()
 {
     int n, quantum;
@@ -100,9 +125,13 @@ int main()
         scanf("%d", &processes[i].burstTime);
     }
 
+    
+
     printf("Enter time quantum: ");
     scanf("%d", &quantum);
 
+    sortArrivalTime(processes, n);
+    
     // Call the Round Robin scheduler
     roundRobin(processes, n, quantum);
 

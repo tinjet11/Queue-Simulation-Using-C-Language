@@ -134,6 +134,43 @@ void printQueue(struct Node *queue, const char *queueName)
     }
 }
 
+int compareByArrivalTime(const void *a, const void *b) {
+    return ((struct Process *)a)->arrivalTime - ((struct Process *)b)->arrivalTime;
+}
+
+void sortQueueByArrivalTime(struct Node **queue) {
+    int n = 0;
+    struct Node *current = *queue;
+
+    // Count the number of elements in the queue
+    while (current != NULL) {
+        n++;
+        current = current->next;
+    }
+
+    // Create an array of processes to sort
+    struct Process *processes = (struct Process *)malloc(n * sizeof(struct Process));
+    current = *queue;
+
+    for (int i = 0; i < n; i++) {
+        processes[i] = current->data;
+        current = current->next;
+    }
+
+    // Sort the array by arrival time
+    qsort(processes, n, sizeof(struct Process), compareByArrivalTime);
+
+    // Reconstruct the sorted queue
+    current = *queue;
+    for (int i = 0; i < n; i++) {
+        current->data = processes[i];
+        current = current->next;
+    }
+
+    free(processes);
+}
+
+
 int main()
 {
     int n, quantumRR;
@@ -143,23 +180,28 @@ int main()
 
     // Input process details and add them to the RR queue
     // ...
-    struct Process process1 = {1, 0, 10, 10, 0};
-    struct Process process2 = {2, 2, 5, 5, 0};
-    struct Process process3 = {3, 3, 8, 8, 0};
-    struct Process process4 = {4, 4, 15, 15, 0};
 
-    n = 4;
-    quantumRR = 4;
+    printf("Enter the number of process:\n");
+    scanf("%d", &n);
+    for (int i = 0; i < n; i++) {
+        struct Process process;
+        process.id = i + 1;
+        printf("Enter arrival time for process %d: ", i + 1);
+        scanf("%d", &process.arrivalTime);
+        printf("Enter burst time for process %d: ", i + 1);
+        scanf("%d", &process.burstTime);
+        process.remainingTime = process.burstTime;
+        addToLinkedList(&rrQueue, process);
+    }
 
-    addToLinkedList(&rrQueue, process1);
-    addToLinkedList(&rrQueue, process2);
-    addToLinkedList(&rrQueue, process3);
-    addToLinkedList(&rrQueue, process4);
+    printf("Enter the time quantum:\n");
+    scanf("%d", &quantumRR);
 
     printQueue(rrQueue, "Interactive RR Queue");
     printQueue(fcfsQueue, "FCFS Queue");
 
     //To Be implement: sort function to sort the rrQueue according to the arrivalTime
+    sortQueueByArrivalTime(&rrQueue);
 
     //Currently the roundrobin function is not affected by the arrival time, may need to implement it
     roundRobin(&rrQueue,&fcfsQueue,quantumRR);

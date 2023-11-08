@@ -12,65 +12,121 @@ Waiting Time = Turnaround Time – Burst Time */
 
 Turnaround Time = Completion Time – Arrival Time */
 
-
 #include <stdio.h>
-int main()
+#include <stdlib.h>
+struct Process
 {
-    int pid[15];
-    int bt[15];
+    int id;             // Process ID
+    int arrivalTime;    // Arrival time
+    int burstTime;      // Burst time
+    int completionTime; // Completion Time
+};
+
+struct Node
+{
+    struct Process data;
+    struct Node *next;
+};
+
+void fcfs(struct Node* head) {
+    if (head == NULL) {
+        printf("No processes to schedule.\n");
+        return;
+    }
+
+    struct Node* current = head;
+    int currentTime = 0;
+
+    while (current != NULL) {
+        if (current->data.arrivalTime > currentTime) {
+            // If the process hasn't arrived yet, wait for it to arrive
+            currentTime = current->data.arrivalTime;
+        }
+
+        // Calculate the completion time for the current process
+        current->data.completionTime = currentTime + current->data.burstTime;
+
+        // Update the current time
+        currentTime = current->data.completionTime;
+
+        current = current->next;
+    }
+}
+
+int compareByArrivalTime(const void *a, const void *b) {
+    return ((struct Process *)a)->arrivalTime - ((struct Process *)b)->arrivalTime;
+}
+
+void sortQueueByArrivalTime(struct Node **queue) {
+    int n = 0;
+    struct Node *current = *queue;
+
+    // Count the number of elements in the queue
+    while (current != NULL) {
+        n++;
+        current = current->next;
+    }
+
+    // Create an array of processes to sort
+    struct Process *processes = (struct Process *)malloc(n * sizeof(struct Process));
+    current = *queue;
+
+    for (int i = 0; i < n; i++) {
+        processes[i] = current->data;
+        current = current->next;
+    }
+
+    // Sort the array by arrival time
+    qsort(processes, n, sizeof(struct Process), compareByArrivalTime);
+
+    // Reconstruct the sorted queue
+    current = *queue;
+    for (int i = 0; i < n; i++) {
+        current->data = processes[i];
+        current = current->next;
+    }
+
+    free(processes);
+}
+
+int main() {
     int n;
     printf("Enter the number of processes: ");
-    scanf("%d",&n);
- 
-    printf("Enter process id of all the processes: \n");
-    for(int i=0;i<n;i++)
-    {
-        printf("Enter process id: ");
-        scanf("%d",&pid[i]);
+    scanf("%d", &n);
+
+    struct Node* head = NULL;
+
+    // Input process details and add them to the linked list
+    for (int i = 0; i < n; i++) {
+        struct Process process;
+        process.id = i + 1;
+        printf("Enter arrival time, and burst time for process %d:\n", i + 1);
+        scanf("%d %d", &process.arrivalTime, &process.burstTime);
+
+        struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+        newNode->data = process;
+        newNode->next = NULL;
+
+        if (head == NULL) {
+            head = newNode;
+        } else {
+            struct Node* current = head;
+            while (current->next != NULL) {
+                current = current->next;
+            }
+            current->next = newNode;
+        }
     }
- 
-    printf("Enter burst time of all the processes: \n");
-    for(int i=0;i<n;i++)
-    {
-        printf("Enter burst time for process with id %d: ",pid[i]);
-        scanf("%d",&bt[i]);
+    sortQueueByArrivalTime(&head);
+    fcfs(head);
+
+    // Print the process details including completion time
+    printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\n");
+    struct Node* current = head;
+    while (current != NULL) {
+        printf("%d\t\t%d\t\t%d\t\t%d\n", current->data.id, current->data.arrivalTime, current->data.burstTime, current->data.completionTime);
+        current = current->next;
     }
- 
-    int i, wt[n];
-    wt[0]=0;
- 
-    //for calculating waiting time of each process
-    for(i=1; i<n; i++)
-    {
-        wt[i]= bt[i-1]+ wt[i-1];
-    }
- 
-    printf("Process ID     Burst Time     Waiting Time     TurnAround Time\n");
-    float twt=0.0;
-    float tat= 0.0;
-    for(i=0; i<n; i++)
-    {
-        printf("%d\t\t", pid[i]);
-        printf("%d\t\t", bt[i]);
-        printf("%d\t\t", wt[i]);
- 
-        //calculating and printing turnaround time of each process
-        printf("%d\t\t", bt[i]+wt[i]);
-        printf("\n");
- 
-        //for calculating total waiting time
-        twt += wt[i];
- 
-        //for calculating total turnaround time
-        tat += (wt[i]+bt[i]);
-    }
-    float att,awt;
- 
-    //for calculating average waiting time
-    awt = twt/n;
- 
-    //for calculating average turnaround time
-    att = tat/n;
-    printf("Avg. waiting time= %f\n",awt);
-    printf("Avg. turnaround time= %f",att);
+
+    return 0;
 }
