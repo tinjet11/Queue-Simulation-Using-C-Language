@@ -117,6 +117,31 @@ void roundRobin(struct Node **RRqueue, struct Node **FCFSqueue, int quantum)
     }
 }
 
+void fcfs(struct Node* head) {
+    if (head == NULL) {
+        printf("No processes to schedule.\n");
+        return;
+    }
+
+    struct Node* current = head;
+    int currentTime = 0;
+
+    while (current != NULL) {
+        if (current->data.arrivalTime > currentTime) {
+            // If the process hasn't arrived yet, wait for it to arrive
+            currentTime = current->data.arrivalTime;
+        }
+
+        // Calculate the completion time for the current process
+        current->data.completionTime = currentTime + current->data.burstTime;
+
+        // Update the current time
+        currentTime = current->data.completionTime;
+
+        current = current->next;
+    }
+}
+
 // Function to print the content of a queue
 void printQueue(struct Node *queue, const char *queueName)
 {
@@ -132,6 +157,29 @@ void printQueue(struct Node *queue, const char *queueName)
         printf("Process with Id %d have remaining time %d \n", current->data.id, current->data.remainingTime);
         current = current->next;
     }
+}
+
+void printResults(struct Node *rrQueue, struct Node *fcfsQueue)
+{
+    printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\n");
+
+    // Print RR Queue results
+    struct Node *currentRR = rrQueue;
+    while (currentRR != NULL)
+    {
+        printf("%d\t\t%d\t\t%d\t\t%d\n", currentRR->data.id, currentRR->data.arrivalTime, currentRR->data.burstTime, currentRR->data.completionTime);
+        currentRR = currentRR->next;
+    }
+
+    // Print FCFS Queue results
+    struct Node *currentFCFS = fcfsQueue;
+    while (currentFCFS != NULL)
+    {
+        printf("%d\t\t%d\t\t%d\t\t%d\n", currentFCFS->data.id, currentFCFS->data.arrivalTime, currentFCFS->data.burstTime, currentFCFS->data.completionTime);
+        currentFCFS = currentFCFS->next;
+    }
+
+
 }
 
 int compareByArrivalTime(const void *a, const void *b) {
@@ -206,8 +254,12 @@ int main()
     //Currently the roundrobin function is not affected by the arrival time, may need to implement it
     roundRobin(&rrQueue,&fcfsQueue,quantumRR);
 
+    fcfs(fcfsQueue);
+
     printQueue(rrQueue, "Interactive RR Queue");
     printQueue(fcfsQueue, "FCFS Queue");
+
+    printResults(rrQueue, fcfsQueue);
 
     return 0;
 }
