@@ -8,7 +8,6 @@ struct Process
     int burstTime;
     int remainingTime;
     int completionTime;
-    int turnaroundTime;
 };
 
 struct Node
@@ -467,7 +466,7 @@ int main()
         printf("Enter burst time for process %d: ", i + 1);
         scanf("%d", &process.burstTime);
         process.remainingTime = process.burstTime;
-        if(choice == 1 || choice == 2) {
+        if(choice == 1) {
             addToLinkedList(&fcfsQueue, process);
         } else {
             addToLinkedList(&rrQueue, process);
@@ -479,19 +478,6 @@ int main()
 
     switch (choice) {
         case 1:
-            struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
-            newNode->data = process;
-            newNode->next = NULL;
-
-            if (fcfsQueue == NULL) {
-                fcfsQueue = newNode;
-            } else {
-                struct Node* current = fcfsQueue;
-                while (current->next != NULL) {
-                    current = current->next;
-                }
-                current->next = newNode;
-            }
             sortQueueByArrivalTime(&fcfsQueue);
             fcfs(fcfsQueue);
             // Print the process details including completion time
