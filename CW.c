@@ -137,16 +137,16 @@ void MLFQfcfs(struct Node *head)
     }
 
     struct Node *current = head;
-    printf("%d", MLFQtime);
+    printf("%d\n", MLFQtime);
 
     while (current != NULL)
     {
 
          // Update the current time
-        MLFQtime = current->data.completionTime + current->data.remainingTime;
+        MLFQtime = MLFQtime + current->data.remainingTime;
 
         // Update completionTime if the process is completed
-            if (current->data.completionTime != 0)
+            if (current->data.remainingTime != 0)
             {
                 current->data.remainingTime = 0;
                 current->data.completionTime = MLFQtime;
@@ -604,10 +604,12 @@ int main()
 
         // Currently the roundrobin function is not affected by the arrival time, may need to implement it
         MLFQroundRobin(&rrQueue, &fcfsQueue, quantumRR);
-        MLFQfcfs(fcfsQueue);
 
         printQueue(rrQueue, "Interactive RR Queue");
         printQueue(fcfsQueue, "FCFS Queue");
+
+        MLFQfcfs(fcfsQueue);
+
 
         printResults(rrQueue, fcfsQueue);
         avgTime = calculateMLFQAverageWaitingTime(rrQueue, fcfsQueue);
