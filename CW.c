@@ -176,7 +176,7 @@ void roundRobin(struct Process processes[], int n, int quantum)
     }
 }
 
-void roundRobin1(struct Node **RRqueue, struct Node **FCFSqueue, int quantum)
+void roundRobinForMLFQ(struct Node **RRqueue, struct Node **FCFSqueue, int quantum)
 {
     // Implementation of Round Robin scheduling
     struct Node *current = *RRqueue;
@@ -543,7 +543,7 @@ int main()
             sortQueueByArrivalTime(&rrQueue);
 
             //Currently the roundrobin function is not affected by the arrival time, may need to implement it
-            roundRobin1(&rrQueue,&fcfsQueue,quantumRR);
+            roundRobinForMLFQ(&rrQueue,&fcfsQueue,quantumRR);
 
             fcfs(fcfsQueue);
 
