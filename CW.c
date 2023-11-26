@@ -16,6 +16,11 @@ struct Node
     struct Node *next;
 };
 
+float totalWaitingTime = 0; 
+float totalTurnAroundTime = 0;
+int numberOfProcesses = 0;
+float totalTime = 0;
+
 void deleteNode(struct Node **head, int id)
 {
     // Handle the case where the list is empty
@@ -451,8 +456,15 @@ int main()
     // ...
 
     printMenu();
-    printf("Enter your choice: ");
-    scanf("%d", &choice);
+     do {
+        printf("Enter your choice (1, 2, or 3): ");
+        scanf("%d", &choice);
+
+        if (choice < 1 || choice > 3) {
+            printf("Invalid choice. Please enter 1, 2, or 3.\n");
+        }
+
+    } while (choice < 1 || choice > 3);
 
     printf("Enter the number of process:\n");
     scanf("%d", &n);
@@ -496,10 +508,7 @@ int main()
             break;
 
         case 2:
-            float totalWaitingTime = 0;
-            float totalTurnAroundTime = 0;
-            int numberOfProcesses = 0;
-            float totalTime = 0;
+
             printf("Enter the time quantum:\n");
             scanf("%d", &quantumRR);
             sortArrivalTime(processes, n);
