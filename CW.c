@@ -8,6 +8,7 @@ struct Process
     int burstTime;
     int remainingTime;
     int completionTime;
+    int MLFQrrCompletionTime;
 };
 
 struct Node
@@ -21,6 +22,9 @@ float totalTurnAroundTime = 0;
 int numberOfProcesses = 0;
 float totalTime = 0;
 int MLFQtime = 0;
+int Fcfstime;
+
+
 
 void deleteNode(struct Node **head, int id)
 {
@@ -137,21 +141,26 @@ void MLFQfcfs(struct Node *head)
     }
 
     struct Node *current = head;
-    printf("%d\n", MLFQtime);
+    //printf("%d\n", MLFQtime);
 
     while (current != NULL)
     {
-
-         // Update the current time
-        MLFQtime = MLFQtime + current->data.remainingTime;
+        //temp = current->data.remainingTime;
 
         // Update completionTime if the process is completed
-            if (current->data.remainingTime != 0)
-            {
-                current->data.remainingTime = 0;
-                current->data.completionTime = MLFQtime;
+         //   if (temp != 0){
+            if(  current->data.MLFQrrCompletionTime <= Fcfstime){
+                current->data.completionTime = Fcfstime + current->data.remainingTime;
+                Fcfstime = current->data.completionTime;
+               
+            }else{
+            current->data.completionTime +=  current->data.remainingTime +  current->data.MLFQrrCompletionTime;
+              Fcfstime = current->data.completionTime;
             }
+        // addToLinkedList(fcfsResultQueue,current->data);
+        //    }
         current = current->next;
+
     }
 }
 
@@ -259,6 +268,55 @@ void MLFQroundRobin(struct Node **RRqueue, struct Node **FCFSqueue, int quantum)
     }
 }
 
+void MLFQroundRobinNew(struct Node **RRqueue, struct Node **FCFSqueue,struct Node **rrResultQueue, int quantum){
+           printf("1");
+    // Implementation of Round Robin scheduling
+    struct Node *current = *RRqueue;
+    struct Node *temp = NULL; // this is important, dont remove this
+    int tempQuantum;
+                           
+    MLFQtime = current->data.arrivalTime;
+       printf("231");
+    while(current != NULL){
+
+        if(current->data.arrivalTime > MLFQtime){
+           MLFQtime++; 
+           continue;
+        }
+
+                 
+        while(1){
+            printf("%d", current->data.id );
+            tempQuantum = quantum;
+            while(tempQuantum != 0 && current->data.remainingTime !=0){
+                current->data.remainingTime--;
+                tempQuantum--;
+                MLFQtime++;
+            }
+
+            if(current->next->data.arrivalTime <= MLFQtime){
+                break;
+            }
+
+            if(current->data.remainingTime ==0){
+                break;
+            }
+        }
+         
+
+            if(current->data.remainingTime !=0){
+                current->data.MLFQrrCompletionTime = MLFQtime;
+                addToLinkedList(FCFSqueue,current->data);
+            }else{
+                //add to result queue
+            }
+           // temp = current->next;
+             addToLinkedList(rrResultQueue,current->data);
+            //deleteNode(RRqueue,current->data.id);
+            current = current->next;
+    }
+}
+ 
 int compareByArrivalTime(const void *a, const void *b)
 {
     return ((struct Process *)a)->arrivalTime - ((struct Process *)b)->arrivalTime;
@@ -333,15 +391,22 @@ void printQueue(struct Node *queue, const char *queueName)
     }
 }
 
-void printResults(struct Node *rrQueue, struct Node *fcfsQueue)
+void printResults(struct Node *rrResultQueue, struct Node *fcfsResultQueue)
 {
     printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\n");
 
     // Print FCFS Queue results
-    struct Node *currentFCFS = fcfsQueue;
+    struct Node *currentRR = rrResultQueue;
+    while (currentRR != NULL)
+    {
+        printf("%d\t\t%d\t\t%d\t\t%d\n", currentRR->data.id, currentRR->data.arrivalTime, currentRR->data.burstTime, currentRR->data.MLFQrrCompletionTime);
+        currentRR = currentRR->next;
+    }
+
+    struct Node *currentFCFS = fcfsResultQueue;
     while (currentFCFS != NULL)
     {
-        printf("%d\t\t%d\t\t%d\t\t%d\n", currentFCFS->data.id, currentFCFS->data.arrivalTime, currentFCFS->data.burstTime, currentFCFS->data.completionTime);
+        printf("%d\t\t%d\t\t%d\t\t%d\n", currentFCFS->data.id, currentFCFS->data.MLFQrrCompletionTime, currentFCFS->data.remainingTime, currentFCFS->data.completionTime);
         currentFCFS = currentFCFS->next;
     }
 }
@@ -503,6 +568,9 @@ int main()
 
     struct Node *rrQueue = NULL;   // Interactive RR queue
     struct Node *fcfsQueue = NULL; // FCFS queue
+struct Node *rrResultQueue = NULL;   // Interactive RR queue
+struct Node *fcfsResultQueue = NULL; // FCFS queue
+
 
     // Input process details and add them to the RR queue
     // ...
@@ -596,28 +664,30 @@ int main()
     case 3:
         printf("Enter the time quantum:\n");
         scanf("%d", &quantumRR);
-        printQueue(rrQueue, "Interactive RR Queue");
-        printQueue(fcfsQueue, "FCFS Queue");
-
+        //printQueue(rrQueue, "Interactive RR Queue");
+        //printQueue(fcfsQueue, "FCFS Queue");
+  printf("8");
         // To Be implement: sort function to sort the rrQueue according to the arrivalTime
         sortQueueByArrivalTime(&rrQueue);
+  printf("4");
+         // Currently the roundrobin function is not affected by the arrival time, may need to implement it
+         MLFQroundRobinNew(&rrQueue, &fcfsQueue, &rrResultQueue, quantumRR);
+   printf("5");
+//        // printQueue(rrQueue, "Interactive RR Queue");
+//        // printQueue(fcfsQueue, "FCFS Queue");
+ printf("1");
+         Fcfstime = fcfsQueue->data.MLFQrrCompletionTime;
+         printf("2");
+         MLFQfcfs(fcfsQueue);
+   printf("3");
 
-        // Currently the roundrobin function is not affected by the arrival time, may need to implement it
-        MLFQroundRobin(&rrQueue, &fcfsQueue, quantumRR);
-
-        printQueue(rrQueue, "Interactive RR Queue");
-        printQueue(fcfsQueue, "FCFS Queue");
-
-        MLFQfcfs(fcfsQueue);
-
-
-        printResults(rrQueue, fcfsQueue);
-        avgTime = calculateMLFQAverageWaitingTime(rrQueue, fcfsQueue);
-        printf("Average Waiting Time: %f\n", avgTime);
-        turnaroundTime = calculateMLFQAverageTurnaroundTime(rrQueue, fcfsQueue);
-        printf("Average Turnaround Time %f\n", turnaroundTime);
-        throughput = calculateMLFQThroughput(rrQueue, fcfsQueue);
-        printf("Throughput: %f\n", throughput);
+       printResults(rrResultQueue, fcfsResultQueue);
+        // avgTime = calculateMLFQAverageWaitingTime(rrQueue, fcfsQueue);
+        // printf("Average Waiting Time: %f\n", avgTime);
+        // turnaroundTime = calculateMLFQAverageTurnaroundTime(rrQueue, fcfsQueue);
+        // printf("Average Turnaround Time %f\n", turnaroundTime);
+        // throughput = calculateMLFQThroughput(rrQueue, fcfsQueue);
+        // printf("Throughput: %f\n", throughput);
         break;
 
     default:
