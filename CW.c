@@ -506,13 +506,19 @@ float ThroughputMLFQ_FCFS(struct Node *fcfsResultQueue)
     int endTime = 0;
     int totalTime = 0;
     struct Node *current = fcfsResultQueue;
-    if (current->data.completionTime == 0)
-    {
-        return 0;
-    }
-    startTime = current->data.MLFQrrCompletionTime;
+
+
     while (current != NULL)
     {
+    if(current->data.completionTime == 0){
+        current = current->next;
+        continue;
+    }
+
+    if(startTime == 0){
+     startTime = current->data.MLFQrrCompletionTime;
+    }
+
 
         totalProcess++;
         if (current->next->data.completionTime == 0)
@@ -569,8 +575,13 @@ void printResults(struct Node *rrResultQueue, struct Node *fcfsResultQueue)
     // if currentFCFS->data.completionTime == 0, means that it is already finish inside RR,
     // thus, no need to print it
 
-    while (currentFCFS != NULL && currentFCFS->data.completionTime != 0)
+    while (currentFCFS != NULL)
     {
+        if (currentFCFS->data.completionTime == 0)
+        {
+            currentFCFS = currentFCFS->next;
+            continue;
+        }
         printf("%d\t\t%d\t\t%d\t\t%d\n", currentFCFS->data.id, currentFCFS->data.MLFQrrCompletionTime, currentFCFS->data.remainingTime, currentFCFS->data.completionTime);
         currentFCFS = currentFCFS->next;
     }
