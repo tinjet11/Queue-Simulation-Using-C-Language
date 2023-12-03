@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <math.h>
 struct Process
 {
     int id;
@@ -452,8 +452,14 @@ float AverageTurnaroundTimeMLFQ_FCFS(float averageWaitingTime_MLFQ_FCFS, struct 
 
 float AverageWaitingTimeMLFQ(float averageWaitingTime_MLFQ_RR, float averageWaitingTime_MLFQ_FCFS)
 {
-
-    return (averageWaitingTime_MLFQ_RR + averageWaitingTime_MLFQ_FCFS) / 2;
+    if (isnan(averageWaitingTime_MLFQ_FCFS))
+    {
+        return averageWaitingTime_MLFQ_RR;
+    }
+    else
+    {
+        return (averageWaitingTime_MLFQ_RR + averageWaitingTime_MLFQ_FCFS) / 2;
+    }
 }
 
 float AverageTurnaroundTimeMLFQ(float averageWaitingTime_MLFQ, struct Node *rrResultQueue)
@@ -472,9 +478,9 @@ float AverageTurnaroundTimeMLFQ(float averageWaitingTime_MLFQ, struct Node *rrRe
 float ThroughputMLFQ_RR(struct Node *rrResultQueue)
 {
     int totalProcess = 0;
-     int startTime = 0; 
-      int endTime = 0;
-       int totalTime = 0;
+    int startTime = 0;
+    int endTime = 0;
+    int totalTime = 0;
 
     struct Node *current = rrResultQueue;
     startTime = current->data.arrivalTime;
@@ -496,10 +502,14 @@ float ThroughputMLFQ_RR(struct Node *rrResultQueue)
 float ThroughputMLFQ_FCFS(struct Node *fcfsResultQueue)
 {
     int totalProcess = 0;
-     int startTime = 0; 
-      int endTime = 0;
-       int totalTime = 0;
+    int startTime = 0;
+    int endTime = 0;
+    int totalTime = 0;
     struct Node *current = fcfsResultQueue;
+    if (current->data.completionTime == 0)
+    {
+        return 0;
+    }
     startTime = current->data.MLFQrrCompletionTime;
     while (current != NULL)
     {
@@ -518,9 +528,9 @@ float ThroughputMLFQ_FCFS(struct Node *fcfsResultQueue)
 float ThroughputMLFQ(struct Node *rrResultQueue)
 {
     int totalProcess = 0;
-     int startTime = 0; 
-      int endTime = 0;
-       int totalTime = 0;
+    int startTime = 0;
+    int endTime = 0;
+    int totalTime = 0;
     struct Node *current = rrResultQueue;
     startTime = current->data.arrivalTime;
     while (current != NULL)
@@ -864,10 +874,9 @@ int main()
         AverageTurnAroundTime_MLFQ_RR = AverageTurnaroundTimeMLFQ_RR(AverageWaitingTime_MLFQ_RR, rrResultQueue);
         printf("Average Turnaround Time MLFQ_RR: %f\n", AverageTurnAroundTime_MLFQ_RR);
 
-        
         Throughput_MLFQ_RR = ThroughputMLFQ_RR(rrResultQueue);
         printf("Throughput: %f\n", Throughput_MLFQ_RR);
-        
+
         float AverageWaitingTime_MLFQ_FCFS, AverageTurnAroundTime_MLFQ_FCFS, Throughput_MLFQ_FCFS;
 
         AverageWaitingTime_MLFQ_FCFS = AverageWaitingTimeMLFQ_FCFS(fcfsQueue);
