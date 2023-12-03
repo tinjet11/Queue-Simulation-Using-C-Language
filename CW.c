@@ -372,18 +372,186 @@ void printQueue(struct Node *queue, const char *queueName)
     }
 }
 
+float AverageWaitingTimeMLFQ_RR(struct Node *rrResultQueue)
+{
+    float totalWaitingTime = 0;
+    int numberOfProcesses = 0;
+
+    struct Node *current = rrResultQueue;
+    while (current != NULL)
+    {
+        // Calculate waiting time for each process
+        int waitingTime = current->data.MLFQrrCompletionTime - (current->data.burstTime - current->data.remainingTime) - current->data.arrivalTime;
+        totalWaitingTime += waitingTime;
+        numberOfProcesses++;
+
+        current = current->next;
+    }
+
+    // Calculate average waiting time
+    return totalWaitingTime / numberOfProcesses;
+}
+
+float AverageWaitingTimeMLFQ_FCFS(struct Node *fcfsResultQueue)
+{
+    float totalWaitingTime = 0;
+    int numberOfProcesses = 0;
+
+    struct Node *current = fcfsResultQueue;
+    while (current != NULL)
+    {
+
+        if (current->data.completionTime == 0)
+        {
+            current = current->next;
+            continue;
+        }
+
+        // Calculate waiting time for each process
+        int waitingTime = current->data.completionTime - (current->data.MLFQrrCompletionTime - current->data.remainingTime);
+        totalWaitingTime += waitingTime;
+        numberOfProcesses++;
+
+        current = current->next;
+    }
+
+    // Calculate average waiting time
+    return totalWaitingTime / numberOfProcesses;
+}
+
+float AverageTurnaroundTimeMLFQ_RR(float averageWaitingTime_MLFQ_RR, struct Node *rrResultQueue)
+{
+    struct Node *current = rrResultQueue;
+    int totalBurstTime = 0;
+    while (current != NULL)
+    {
+        totalBurstTime += current->data.burstTime - current->data.remainingTime;
+        current = current->next;
+    }
+
+    return averageWaitingTime_MLFQ_RR + totalBurstTime;
+}
+
+float AverageTurnaroundTimeMLFQ_FCFS(float averageWaitingTime_MLFQ_FCFS, struct Node *fcfsResultQueue)
+{
+    struct Node *current = fcfsResultQueue;
+    int totalBurstTime = 0;
+    while (current != NULL)
+    {
+        if (current->data.completionTime == 0)
+        {
+            current = current->next;
+            continue;
+        }
+        totalBurstTime += current->data.burstTime - current->data.remainingTime;
+        current = current->next;
+    }
+
+    return averageWaitingTime_MLFQ_FCFS + totalBurstTime;
+}
+
+float AverageWaitingTimeMLFQ(float averageWaitingTime_MLFQ_RR, float averageWaitingTime_MLFQ_FCFS)
+{
+
+    return (averageWaitingTime_MLFQ_RR + averageWaitingTime_MLFQ_FCFS) / 2;
+}
+
+float AverageTurnaroundTimeMLFQ(float averageWaitingTime_MLFQ, struct Node *rrResultQueue)
+{
+    struct Node *current = rrResultQueue;
+    int totalBurstTime = 0;
+    while (current != NULL)
+    {
+        totalBurstTime += current->data.burstTime;
+        current = current->next;
+    }
+
+    return averageWaitingTime_MLFQ + totalBurstTime;
+}
+
+float ThroughputMLFQ_RR(struct Node *rrResultQueue)
+{
+    int totalProcess = 0;
+     int startTime = 0; 
+      int endTime = 0;
+       int totalTime = 0;
+
+    struct Node *current = rrResultQueue;
+    startTime = current->data.arrivalTime;
+    while (current != NULL)
+    {
+
+        totalProcess++;
+        if (current->next == NULL)
+        {
+            endTime = current->data.MLFQrrCompletionTime;
+        }
+        current = current->next;
+    }
+    totalTime = (endTime - startTime);
+
+    return totalTime / totalProcess;
+}
+
+float ThroughputMLFQ_FCFS(struct Node *fcfsResultQueue)
+{
+    int totalProcess = 0;
+     int startTime = 0; 
+      int endTime = 0;
+       int totalTime = 0;
+    struct Node *current = fcfsResultQueue;
+    startTime = current->data.MLFQrrCompletionTime;
+    while (current != NULL)
+    {
+
+        totalProcess++;
+        if (current->next->data.completionTime == 0)
+        {
+            endTime = current->data.completionTime;
+            break;
+        }
+        current = current->next;
+    }
+    totalTime = (endTime - startTime);
+    return totalTime / totalProcess;
+}
+float ThroughputMLFQ(struct Node *rrResultQueue)
+{
+    int totalProcess = 0;
+     int startTime = 0; 
+      int endTime = 0;
+       int totalTime = 0;
+    struct Node *current = rrResultQueue;
+    startTime = current->data.arrivalTime;
+    while (current != NULL)
+    {
+
+        totalProcess++;
+        if (current->next == NULL)
+        {
+            endTime = current->data.MLFQrrCompletionTime;
+            break;
+        }
+        current = current->next;
+    }
+    totalTime = (endTime - startTime);
+    return totalTime / totalProcess;
+}
+
 void printResults(struct Node *rrResultQueue, struct Node *fcfsResultQueue)
 {
     printf("RR in MLFQ \n");
     printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\n");
 
-    // Print FCFS Queue results
+    // Print MLFQRR Queue results
     struct Node *currentRR = rrResultQueue;
     while (currentRR != NULL)
     {
         printf("%d\t\t%d\t\t%d\t\t%d\n", currentRR->data.id, currentRR->data.arrivalTime, currentRR->data.burstTime, currentRR->data.MLFQrrCompletionTime);
         currentRR = currentRR->next;
     }
+
+    // Print MLFQFCFS Queue results
     printf("\n");
     printf("FCFS in MLFQ \n");
     printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\n");
@@ -397,6 +565,7 @@ void printResults(struct Node *rrResultQueue, struct Node *fcfsResultQueue)
         currentFCFS = currentFCFS->next;
     }
 
+    // Print MLFQ Queue results
     printf("Overall MLFQ \n");
     printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\n");
     currentFCFS = fcfsResultQueue;
@@ -686,10 +855,40 @@ int main()
         MLFQfcfs(fcfsQueue);
 
         printResults(rrResultQueue, fcfsQueue);
-        // avgTime = calculateMLFQAverageWaitingTime(rrQueue, fcfsQueue);
-        // printf("Average Waiting Time: %f\n", avgTime);
-        // turnaroundTime = calculateMLFQAverageTurnaroundTime(rrQueue, fcfsQueue);
-        // printf("Average Turnaround Time %f\n", turnaroundTime);
+
+        float AverageWaitingTime_MLFQ_RR, AverageTurnAroundTime_MLFQ_RR, Throughput_MLFQ_RR;
+
+        AverageWaitingTime_MLFQ_RR = AverageWaitingTimeMLFQ_RR(rrResultQueue);
+        printf("Average Waiting Time MLFQ_RR: %f\n", AverageWaitingTime_MLFQ_RR);
+
+        AverageTurnAroundTime_MLFQ_RR = AverageTurnaroundTimeMLFQ_RR(AverageWaitingTime_MLFQ_RR, rrResultQueue);
+        printf("Average Turnaround Time MLFQ_RR: %f\n", AverageTurnAroundTime_MLFQ_RR);
+
+        
+        Throughput_MLFQ_RR = ThroughputMLFQ_RR(rrResultQueue);
+        printf("Throughput: %f\n", Throughput_MLFQ_RR);
+        
+        float AverageWaitingTime_MLFQ_FCFS, AverageTurnAroundTime_MLFQ_FCFS, Throughput_MLFQ_FCFS;
+
+        AverageWaitingTime_MLFQ_FCFS = AverageWaitingTimeMLFQ_FCFS(fcfsQueue);
+        printf("Average Waiting Time MLFQ_FCFS: %f\n", AverageWaitingTime_MLFQ_FCFS);
+
+        AverageTurnAroundTime_MLFQ_FCFS = AverageTurnaroundTimeMLFQ_FCFS(AverageWaitingTime_MLFQ_FCFS, fcfsQueue);
+        printf("Average Turnaround Time MLFQ_FCFS: %f\n", AverageTurnAroundTime_MLFQ_FCFS);
+
+        Throughput_MLFQ_FCFS = ThroughputMLFQ_FCFS(fcfsQueue);
+        printf("Throughput: %f\n", Throughput_MLFQ_FCFS);
+
+        float AverageWaitingTime_MLFQ, AverageTurnAroundTime_MLFQ, Throughput_MLFQ;
+
+        AverageWaitingTime_MLFQ = AverageWaitingTimeMLFQ(AverageWaitingTime_MLFQ_RR, AverageWaitingTime_MLFQ_FCFS);
+        printf("Average Waiting Time MLFQ: %f\n", AverageWaitingTime_MLFQ);
+
+        AverageTurnAroundTime_MLFQ = AverageTurnaroundTimeMLFQ(AverageWaitingTime_MLFQ, rrResultQueue);
+        printf("Average Turnaround Time MLFQ: %f\n", AverageTurnAroundTime_MLFQ);
+
+        Throughput_MLFQ = ThroughputMLFQ(rrQueue);
+        printf("Throughput: %f\n", Throughput_MLFQ);
         // throughput = calculateMLFQThroughput(rrQueue, fcfsQueue);
         // printf("Throughput: %f\n", throughput);
         break;
