@@ -21,17 +21,11 @@ float totalWaitingTime = 0;
 float totalTurnAroundTime = 0;
 int numberOfProcesses = 0;
 float totalTime = 0;
-
+int MLFQtime;
 int Fcfstime;
 
 void deleteNode(struct Node **head, int id)
 {
-    if (head == NULL)
-    {
-        printf("Error: Attempting to delete a NULL node.\n");
-        return;
-    }
-
     // Handle the case where the list is empty
     if (*head == NULL)
     {
@@ -136,41 +130,46 @@ void fcfs(struct Node *head)
     }
 }
 
-void MLFQfcfs(struct Node *head)
+struct Node *findNodeById(struct Node **RRqueue, int id)
 {
-    if (head == NULL)
+    struct Node *current = *RRqueue;
+
+    while (current != NULL)
+    {
+        if (current->data.id == id)
+        {
+            // Node with the matching ID found
+            return current;
+        }
+        current = current->next;
+    }
+
+    // ID not found in the linked list
+    return NULL;
+}
+
+void MLFQfcfs(struct Node **FCFSqueue,struct Node **RRqueue)
+{
+    if (FCFSqueue == NULL)
     {
         printf("No processes to schedule.\n");
         return;
     }
 
-    struct Node *current = head;
-    // printf("%d\n", MLFQtime);
+    struct Node *current = *FCFSqueue;
+    struct Node *rrcurrent = NULL;
 
-    while (current != NULL)
-    {
-        // temp = current->data.remainingTime;
-        if (current->data.remainingTime == 0)
-        {
-            current = current->next;
-            continue;
-        }
-        // Update completionTime if the process is completed
-        //   if (temp != 0){
-        if (current->data.MLFQrrCompletionTime <= Fcfstime)
-        {
-            current->data.completionTime = Fcfstime + current->data.remainingTime;
-            Fcfstime = current->data.completionTime;
-        }
-        else
-        {
-            current->data.completionTime += current->data.remainingTime + current->data.MLFQrrCompletionTime;
-            Fcfstime = current->data.completionTime;
-        }
-        // addToLinkedList(fcfsResultQueue,current->data);
-        //     }
-        current = current->next;
-    }
+    rrcurrent = findNodeById(RRqueue,current->data.id);
+
+
+        MLFQtime += current->data.remainingTime;
+
+
+        rrcurrent->data.completionTime = MLFQtime;
+
+        // TODO: delete the node from fcfs
+        deleteNode(FCFSqueue,current->data.id);
+    
 }
 
 void roundRobin(struct Process processes[], int n, int quantum)
@@ -232,9 +231,8 @@ void MLFQroundRobinNew(struct Node **RRqueue, struct Node **FCFSqueue, struct No
     // Implementation of Round Robin scheduling
     struct Node *current = *RRqueue;
     struct Node *temp = NULL; // this is important, dont remove this
-    int tempQuantum;
 
-    int MLFQtime = current->data.arrivalTime;
+    MLFQtime = current->data.arrivalTime;
 
     while (current != NULL)
     {
@@ -245,56 +243,49 @@ void MLFQroundRobinNew(struct Node **RRqueue, struct Node **FCFSqueue, struct No
             continue;
         }
 
-        while (1)
-        {
-            tempQuantum = quantum;
+        // Execute the process for the quantum or its remaining time, whichever is smaller
+        int executeTime = (current->data.remainingTime < quantum) ? current->data.remainingTime : quantum;
+        current->data.remainingTime -= executeTime;
+        MLFQtime += executeTime;
 
-            while (1)
-            {
-
-                //  while(tempQuantum != 0 || current->data.remainingTime !=0){
-                current->data.remainingTime = current->data.remainingTime - 1;
-                tempQuantum--;
-                MLFQtime++;
-
-                if (tempQuantum == 0)
-                {
-                    break;
-                }
-
-                if (current->data.remainingTime == 0)
-                {
-
-                    break;
-                }
-            }
-
-            if (current != NULL && current->data.remainingTime == 0)
-            {
-                break;
-            }
-
-            if (current->next != NULL && current->next->data.arrivalTime <= MLFQtime)
-            {
-                break;
-            }
-        }
-
+        // if process not yet finish in one time quantum, will go inside fcfs
         if (current->data.remainingTime != 0)
         {
             current->data.MLFQrrCompletionTime = MLFQtime;
-            addToLinkedList(FCFSqueue, current->data);
+
+            // if next process haven't arrive
+            if (current->next != NULL && current->next->data.arrivalTime > MLFQtime)
+            {
+                // simulate the fcfs run by adding the remaining time to MLFQtime
+                addToLinkedList(FCFSqueue,current->data);
+
+                while(current->next->data.arrivalTime > MLFQtime && current->next != NULL && *FCFSqueue != NULL){
+                    MLFQfcfs(FCFSqueue,RRqueue);
+                }
+            }
+            // next process in rr is ready already
+            else
+            {
+                // put inside fcfs queue, but not run
+                addToLinkedList(FCFSqueue,current->data);
+            }
         }
+        //process that finish in one time quantum
+        //will have same MLFQrrCompletionTime and completionTime
         else
         {
             current->data.MLFQrrCompletionTime = MLFQtime;
-            addToLinkedList(FCFSqueue, current->data);
-            // add to result queue
+            current->data.completionTime = MLFQtime;
         }
-        // temp = current->next;
-        addToLinkedList(rrResultQueue, current->data);
-        // deleteNode(RRqueue,current->data.id);
         current = current->next;
+    }
+
+    
+
+    //after finishing the round robin
+    //execute whatever inside fcfs until it is empty 
+    while(*FCFSqueue != NULL){
+         MLFQfcfs(FCFSqueue,RRqueue);
     }
 }
 
@@ -372,239 +363,52 @@ void printQueue(struct Node *queue, const char *queueName)
     }
 }
 
-float AverageWaitingTimeMLFQ_RR(struct Node *rrResultQueue)
-{
-    float totalWaitingTime = 0;
-    int numberOfProcesses = 0;
-
-    struct Node *current = rrResultQueue;
-    while (current != NULL)
-    {
-        // Calculate waiting time for each process
-        int waitingTime = current->data.MLFQrrCompletionTime - (current->data.burstTime - current->data.remainingTime) - current->data.arrivalTime;
-        totalWaitingTime += waitingTime;
-        numberOfProcesses++;
-
-        current = current->next;
-    }
-
-    // Calculate average waiting time
-    return totalWaitingTime / numberOfProcesses;
-}
-
-float AverageWaitingTimeMLFQ_FCFS(struct Node *fcfsResultQueue)
-{
-    float totalWaitingTime = 0;
-    int numberOfProcesses = 0;
-
-    struct Node *current = fcfsResultQueue;
-    while (current != NULL)
-    {
-
-        if (current->data.completionTime == 0)
-        {
-            current = current->next;
-            continue;
-        }
-
-        // Calculate waiting time for each process
-        int waitingTime = current->data.completionTime - (current->data.MLFQrrCompletionTime - current->data.remainingTime);
-        totalWaitingTime += waitingTime;
-        numberOfProcesses++;
-
-        current = current->next;
-    }
-
-    // Calculate average waiting time
-    return totalWaitingTime / numberOfProcesses;
-}
-
-float AverageTurnaroundTimeMLFQ_RR(float averageWaitingTime_MLFQ_RR, struct Node *rrResultQueue)
-{
-    struct Node *current = rrResultQueue;
-    int totalBurstTime = 0;
-    while (current != NULL)
-    {
-        totalBurstTime += current->data.burstTime - current->data.remainingTime;
-        current = current->next;
-    }
-
-    return averageWaitingTime_MLFQ_RR + totalBurstTime;
-}
-
-float AverageTurnaroundTimeMLFQ_FCFS(float averageWaitingTime_MLFQ_FCFS, struct Node *fcfsResultQueue)
-{
-    struct Node *current = fcfsResultQueue;
-    int totalBurstTime = 0;
-    while (current != NULL)
-    {
-        if (current->data.completionTime == 0)
-        {
-            current = current->next;
-            continue;
-        }
-        totalBurstTime += current->data.burstTime - current->data.remainingTime;
-        current = current->next;
-    }
-
-    return averageWaitingTime_MLFQ_FCFS + totalBurstTime;
-}
-
-float AverageWaitingTimeMLFQ(float averageWaitingTime_MLFQ_RR, float averageWaitingTime_MLFQ_FCFS)
-{
-    if (isnan(averageWaitingTime_MLFQ_FCFS))
-    {
-        return averageWaitingTime_MLFQ_RR;
-    }
-    else
-    {
-        return (averageWaitingTime_MLFQ_RR + averageWaitingTime_MLFQ_FCFS) / 2;
-    }
-}
-
-float AverageTurnaroundTimeMLFQ(float averageWaitingTime_MLFQ, struct Node *rrResultQueue)
-{
-    struct Node *current = rrResultQueue;
-    int totalBurstTime = 0;
-    while (current != NULL)
-    {
-        totalBurstTime += current->data.burstTime;
-        current = current->next;
-    }
-
-    return averageWaitingTime_MLFQ + totalBurstTime;
-}
-
-float ThroughputMLFQ_RR(struct Node *rrResultQueue)
-{
-    int totalProcess = 0;
-    int startTime = 0;
-    int endTime = 0;
-    int totalTime = 0;
-
-    struct Node *current = rrResultQueue;
-    startTime = current->data.arrivalTime;
-    while (current != NULL)
-    {
-
-        totalProcess++;
-        if (current->next == NULL)
-        {
-            endTime = current->data.MLFQrrCompletionTime;
-        }
-        current = current->next;
-    }
-    totalTime = (endTime - startTime);
-
-    return totalTime / totalProcess;
-}
-
-float ThroughputMLFQ_FCFS(struct Node *fcfsResultQueue)
-{
-    int totalProcess = 0;
-    int startTime = 0;
-    int endTime = 0;
-    int totalTime = 0;
-    struct Node *current = fcfsResultQueue;
-
-
-    while (current != NULL)
-    {
-    if(current->data.completionTime == 0){
-        current = current->next;
-        continue;
-    }
-
-    if(startTime == 0){
-     startTime = current->data.MLFQrrCompletionTime;
-    }
-
-
-        totalProcess++;
-        if (current->next->data.completionTime == 0)
-        {
-            endTime = current->data.completionTime;
-            break;
-        }
-        current = current->next;
-    }
-    totalTime = (endTime - startTime);
-    return totalTime / totalProcess;
-}
-float ThroughputMLFQ(struct Node *rrResultQueue)
-{
-    int totalProcess = 0;
-    int startTime = 0;
-    int endTime = 0;
-    int totalTime = 0;
-    struct Node *current = rrResultQueue;
-    startTime = current->data.arrivalTime;
-    while (current != NULL)
-    {
-
-        totalProcess++;
-        if (current->next == NULL)
-        {
-            endTime = current->data.MLFQrrCompletionTime;
-            break;
-        }
-        current = current->next;
-    }
-    totalTime = (endTime - startTime);
-    return totalTime / totalProcess;
-}
-
-void printResults(struct Node *rrResultQueue, struct Node *fcfsResultQueue)
+void printResults(struct Node *rrResultQueue,int quantumRR)
 {
     printf("RR in MLFQ \n");
-    printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\n");
+    printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\tTurnaroundTime\tWaitingTime\n");
 
     // Print MLFQRR Queue results
     struct Node *currentRR = rrResultQueue;
+    int turnaroundTime = 0;
+    int waitingTime = 0;
     while (currentRR != NULL)
     {
-        printf("%d\t\t%d\t\t%d\t\t%d\n", currentRR->data.id, currentRR->data.arrivalTime, currentRR->data.burstTime, currentRR->data.MLFQrrCompletionTime);
+        turnaroundTime = currentRR->data.MLFQrrCompletionTime - currentRR->data.arrivalTime;
+        waitingTime = turnaroundTime - quantumRR;
+        printf("%d\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d\n", currentRR->data.id, currentRR->data.arrivalTime, currentRR->data.burstTime, currentRR->data.MLFQrrCompletionTime,turnaroundTime,waitingTime);
         currentRR = currentRR->next;
     }
 
     // Print MLFQFCFS Queue results
     printf("\n");
     printf("FCFS in MLFQ \n");
-    printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\n");
-    struct Node *currentFCFS = fcfsResultQueue;
-    // if currentFCFS->data.completionTime == 0, means that it is already finish inside RR,
-    // thus, no need to print it
+    printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\tTurnaroundTime\tWaitingTime\n");
+    struct Node *currentFCFS = rrResultQueue;
 
     while (currentFCFS != NULL)
     {
-        if (currentFCFS->data.completionTime == 0)
+        if (currentFCFS->data.completionTime ==currentFCFS->data.MLFQrrCompletionTime)
         {
             currentFCFS = currentFCFS->next;
             continue;
         }
-        printf("%d\t\t%d\t\t%d\t\t%d\n", currentFCFS->data.id, currentFCFS->data.MLFQrrCompletionTime, currentFCFS->data.remainingTime, currentFCFS->data.completionTime);
+        turnaroundTime = currentFCFS->data.completionTime - currentFCFS->data.MLFQrrCompletionTime;
+        waitingTime = turnaroundTime - currentFCFS->data.remainingTime;
+        printf("%d\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d\n", currentFCFS->data.id, currentFCFS->data.MLFQrrCompletionTime, currentFCFS->data.remainingTime, currentFCFS->data.completionTime,turnaroundTime,waitingTime);
         currentFCFS = currentFCFS->next;
     }
 
     // Print MLFQ Queue results
     printf("Overall MLFQ \n");
-    printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\n");
-    currentFCFS = fcfsResultQueue;
+    printf("Process ID\tArrival Time\tBurst Time\tCompletion Time\tTurnaroundTime\tWaitingTime\n");
     currentRR = rrResultQueue;
     while (currentRR != NULL)
-    {
-        if (currentFCFS->data.completionTime == 0)
-        {
-            printf("%d\t\t%d\t\t%d\t\t%d\n", currentRR->data.id, currentRR->data.arrivalTime, currentRR->data.burstTime, currentRR->data.MLFQrrCompletionTime);
-            currentFCFS = currentFCFS->next;
+    {        
+            turnaroundTime = currentRR->data.completionTime - currentRR->data.arrivalTime;
+            waitingTime = turnaroundTime - currentRR->data.burstTime;
+            printf("%d\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d\n", currentRR->data.id, currentRR->data.arrivalTime, currentRR->data.burstTime, currentRR->data.completionTime,turnaroundTime,waitingTime);
             currentRR = currentRR->next;
-        }
-        else
-        {
-            printf("%d\t\t%d\t\t%d\t\t%d\n", currentRR->data.id, currentRR->data.arrivalTime, currentRR->data.burstTime, currentFCFS->data.completionTime);
-            currentFCFS = currentFCFS->next;
-            currentRR = currentRR->next;
-        }
     }
 }
 
@@ -872,12 +676,9 @@ int main()
         //        // printQueue(rrQueue, "Interactive RR Queue");
         //        // printQueue(fcfsQueue, "FCFS Queue");
 
-        Fcfstime = fcfsQueue->data.MLFQrrCompletionTime;
-        MLFQfcfs(fcfsQueue);
+        printResults(rrQueue,quantumRR);
 
-        printResults(rrResultQueue, fcfsQueue);
-
-        float AverageWaitingTime_MLFQ_RR, AverageTurnAroundTime_MLFQ_RR, Throughput_MLFQ_RR;
+       /*  float AverageWaitingTime_MLFQ_RR, AverageTurnAroundTime_MLFQ_RR, Throughput_MLFQ_RR;
 
         AverageWaitingTime_MLFQ_RR = AverageWaitingTimeMLFQ_RR(rrResultQueue);
         printf("Average Waiting Time MLFQ_RR: %f\n", AverageWaitingTime_MLFQ_RR);
@@ -908,7 +709,7 @@ int main()
         printf("Average Turnaround Time MLFQ: %f\n", AverageTurnAroundTime_MLFQ);
 
         Throughput_MLFQ = ThroughputMLFQ(rrQueue);
-        printf("Throughput: %f\n", Throughput_MLFQ);
+        printf("Throughput: %f\n", Throughput_MLFQ); */
         // throughput = calculateMLFQThroughput(rrQueue, fcfsQueue);
         // printf("Throughput: %f\n", throughput);
         break;

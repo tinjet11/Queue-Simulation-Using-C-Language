@@ -92,7 +92,7 @@ void roundRobin(struct Node **RRqueue, struct Node **FCFSqueue, int quantum)
     struct Node *current = *RRqueue;
     struct Node *temp = NULL; //this is important, dont remove this
 
-        int executeTime;
+    int executeTime;
     while (current != NULL)
     {
         if (current->data.remainingTime > 0)
