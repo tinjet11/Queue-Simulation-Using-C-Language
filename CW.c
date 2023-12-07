@@ -22,7 +22,7 @@ float totalTurnAroundTime = 0;
 int numberOfProcesses = 0;
 float totalTime = 0;
 int MLFQtime;
-int Fcfstime;
+
 
 void deleteNode(struct Node **head, int id)
 {
@@ -161,13 +161,13 @@ void MLFQfcfs(struct Node **FCFSqueue,struct Node **RRqueue)
 
     rrcurrent = findNodeById(RRqueue,current->data.id);
 
-
+        //update MLFQTime
         MLFQtime += current->data.remainingTime;
 
-
+        //update the completion time of process
         rrcurrent->data.completionTime = MLFQtime;
 
-        // TODO: delete the node from fcfs
+        //Delete the node from fcfs
         deleteNode(FCFSqueue,current->data.id);
     
 }
@@ -225,7 +225,7 @@ void roundRobin(struct Process processes[], int n, int quantum)
     }
 }
 
-void MLFQroundRobinNew(struct Node **RRqueue, struct Node **FCFSqueue, struct Node **rrResultQueue, int quantum)
+void MLFQroundRobin(struct Node **RRqueue, struct Node **FCFSqueue, int quantum)
 {
 
     // Implementation of Round Robin scheduling
@@ -577,11 +577,9 @@ int main()
         printf("Enter the time quantum:\n");
         scanf("%d", &quantumRR);
 
-        // To Be implement: sort function to sort the rrQueue according to the arrivalTime
         sortQueueByArrivalTime(&rrQueue);
 
-        // Currently the roundrobin function is not affected by the arrival time, may need to implement it
-        MLFQroundRobinNew(&rrQueue, &fcfsQueue, &rrResultQueue, quantumRR);
+        MLFQroundRobin(&rrQueue, &fcfsQueue,quantumRR);
 
         printResults(rrQueue,quantumRR);
 
